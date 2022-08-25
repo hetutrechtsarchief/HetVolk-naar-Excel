@@ -22,33 +22,45 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   $rows = [];
   $fieds = [];
 
+  // header("Content-type: text/plain");
+
   if (($file = fopen($data_csv, "r")) !== FALSE) {
     if (fgets($file, 4) !== "\xef\xbb\xbf") rewind($file); //Skip BOM if present
 
     while (($data = fgetcsv($file, 0, ";", "\"" , "\\")) !== FALSE) {
       if (strlen($data[0])!=32) continue; //id should be of length 32, so skip first item
-
-      $row = [];
-      $row["id"] = $data[0];
-
-      if (!array_key_exists($row["id"],$filenames_by_id) || $filenames_by_id[$row["id"]]=="") {
+      
+      if (!array_key_exists($data[0],$filenames_by_id) || $filenames_by_id[$data[0]]=="") {
         die("Probleem: ID niet gevonden in de lijst met bestandsnamen (of lege bestandsnaam)");
       }
 
-      foreach (json_decode($data[2]) as $item) {
-        foreach  ($item[0] as $key => $value) {
-          $row[$key] = $value;
-          $fields[$key] = $key; //collect al columns
+      // var_dump(json_decode($data[2]));
+      // die();
+
+      foreach (json_decode($data[2]) as $items) { //scans
+
+        foreach ($items as $item) { //records per scan
+          $row = [];
+          $row["id"] = $data[0];
+          foreach  ($item as $key => $value) { //columns
+            $row[$key] = $value;
+            $fields[$key] = $key; //collect al column names
+          }
+          $rows[] = $row;
         }
+        
       }
 
-      $rows[] = $row;
     }
     fclose($file);
   }
 
+  // var_dump($rows);
+  // die();
+
   $fields[] = "bestandsnaam"; //add column
   $fields[] = "id"; //add column
+  $fields[] = "link"; //add column
 
   $spreadsheet = new Spreadsheet();
   $sheet = $spreadsheet->getActiveSheet();
@@ -61,10 +73,16 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
     # strip .jpg.cropX uit de betandsnaam
     $row["bestandsnaam"] = preg_replace("/\.jpg\.crop\d{1,2}/", "", $row["bestandsnaam"]);
 
+    $row["link"] = "https://crowd.hetutrechtsarchief.nl/" . $row["id"];
+
     $c=1; //start at col 1
     foreach ($fields as $field) {
       $value = array_key_exists($field,$row) ? $row[$field] : "";
-      $sheet->getCellByColumnAndRow($c, $r)->setValue($value);
+      $sheet->getCellByColumnAndRow($c, $r)->setValue($value);      
+
+      if ($field=="link") {
+        $sheet->getCellByColumnAndRow($c, $r)->getHyperlink()->setUrl($value);
+      }
       $c++;
     }
     $r++;
