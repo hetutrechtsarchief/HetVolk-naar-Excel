@@ -4,3 +4,4 @@ composer.lock
 data/
 overig/
 *.xlsx
+upload.sh
