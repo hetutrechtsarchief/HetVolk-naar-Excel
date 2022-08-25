@@ -54,8 +54,6 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   $sheet = $spreadsheet->getActiveSheet();
   $sheet->fromArray($fields,NULL,'A1'); //header
 
-  header('Content-Type: text/plain');
-
   $r=2; //start at row 2
   foreach ($rows as $row) {
     $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
