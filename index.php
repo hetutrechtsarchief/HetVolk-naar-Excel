@@ -78,7 +78,8 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
     $c=1; //start at col 1
     foreach ($fields as $field) {
       $value = array_key_exists($field,$row) ? $row[$field] : "";
-      $sheet->getCellByColumnAndRow($c, $r)->setValue($value);      
+      $cell = $sheet->getCellByColumnAndRow($c, $r);
+      $cell->setValue($value);      
 
       if ($field=="link") {
         $sheet->getCellByColumnAndRow($c, $r)->getHyperlink()->setUrl($value);
@@ -87,6 +88,13 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
     }
     $r++;
   }
+
+  //add Auto Filter
+  $sheet->setAutoFilter($sheet->calculateWorksheetDimension());
+
+  //set column width
+  $sheet->getDefaultColumnDimension()->setWidth(100, 'pt');
+
 
   $writer = new Xlsx($spreadsheet);
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
