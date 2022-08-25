@@ -8,7 +8,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   $data_csv = $_FILES["result_data_csv"]["tmp_name"];
 
   if ($input_csv=="" || $data_csv=="") {
-    die("file upload error");
+    die("Probleem bij het uploaden van de bestanden");
   }
 
   $filenames_by_id = [];
@@ -20,6 +20,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   }
 
   $rows = [];
+  $fieds = [];
 
   if (($file = fopen($data_csv, "r")) !== FALSE) {
     if (fgets($file, 4) !== "\xef\xbb\xbf") rewind($file); //Skip BOM if present
@@ -29,11 +30,17 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
       $row = [];
       $row["id"] = $data[0];
+
+      if (!array_key_exists($row["id"],$filenames_by_id)) {
+        die("Probleem: ID niet gevonden in de lijst met bestandsnamen");
+      }
+
       $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
 
       foreach (json_decode($data[2]) as $item) {
         foreach  ($item[0] as $key => $value) {
           $row[$key] = $value;
+          $fields[$key] = 1; //collect al columns
         }
       }
       
@@ -44,8 +51,8 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
   $spreadsheet = new Spreadsheet();
   $sheet = $spreadsheet->getActiveSheet();
-  $sheet->fromArray(array_keys($rows[0]),NULL,'A1'); //header
-  $sheet->fromArray($rows,NULL,'A2'); //rows
+  $sheet->fromArray($fields,NULL,'A1'); //header
+  // $sheet->fromArray($rows,NULL,'A2'); //rows
   $writer = new Xlsx($spreadsheet);
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   header('Content-Disposition: attachment; filename="result.xlsx"');
