@@ -24,9 +24,9 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   if (($file = fopen($data_csv, "r")) !== FALSE) {
     if (fgets($file, 4) !== "\xef\xbb\xbf") rewind($file); //Skip BOM if present
 
-    $i=0;
-    while ($i++<5 && ($data = fgetcsv($file, 0, ";", "\"" , "\\")) !== FALSE) {
-      if ($i==1) continue;
+    while (($data = fgetcsv($file, 0, ";", "\"" , "\\")) !== FALSE) {
+      if (strlen($data[0])!=32) continue; //id should be of length 32, so skip first item
+
       $row = [];
       $row["id"] = $data[0];
       $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
@@ -44,7 +44,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
   $spreadsheet = new Spreadsheet();
   $sheet = $spreadsheet->getActiveSheet();
-  $sheet->fromArray(array_keys($row),NULL,'A1'); //header
+  $sheet->fromArray(array_keys($rows[0]),NULL,'A1'); //header
   $sheet->fromArray($rows,NULL,'A2'); //rows
   $writer = new Xlsx($spreadsheet);
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -56,7 +56,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   ?>
   <style>body { font-family: sans-serif; }</style>
   <h1>Resultaten van HetVolk.org naar Excel</h1>
-  <form action="index.php" method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data">
   <p>CSV met bestandsnamen voor HetVolk: <input type="file" name="input_csv" accept=".csv" required></p>
   <p>CSV met resultaten van HetVolk: <input type="file" name="result_data_csv" accept=".csv" required></p>
   <input type="submit" value="Start">
