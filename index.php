@@ -1,4 +1,9 @@
 <?php
+// memory_limit = 512M
+// upload_max_filesize = 50M
+// post_max_size = 50M
+
+
 require 'vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -22,7 +27,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   $rows = [];
   $fieds = [];
 
-  // header("Content-type: text/plain");
+  header("Content-type: text/plain");
 
   if (($file = fopen($data_csv, "r")) !== FALSE) {
     if (fgets($file, 4) !== "\xef\xbb\xbf") rewind($file); //Skip BOM if present
@@ -39,14 +44,21 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
       foreach (json_decode($data[2]) as $items) { //scans
 
-        foreach ($items as $item) { //records per scan
-          $row = [];
-          $row["id"] = $data[0];
-          foreach  ($item as $key => $value) { //columns
-            $row[$key] = $value;
-            $fields[$key] = $key; //collect al column names
+        if (is_array($items)) { # last item ('last') is not an array 
+        //   echo "Probleem: '".$items."' is geen array.\n\n";
+        //   var_dump(json_decode($data[2]));
+        //   die();
+        // }
+
+          foreach ($items as $item) { //records per scan
+            $row = [];
+            $row["id"] = $data[0];
+            foreach  ($item as $key => $value) { //columns
+              $row[$key] = $value;
+              $fields[$key] = $key; //collect al column names
+            }
+            $rows[] = $row;
           }
-          $rows[] = $row;
         }
         
       }
