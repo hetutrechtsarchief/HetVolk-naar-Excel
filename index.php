@@ -11,11 +11,11 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
     die("Probleem bij het uploaden van de bestanden");
   }
 
+  // lees alle bestandsnamen in
   $filenames_by_id = [];
-
   foreach (array_map('str_getcsv', file($input_csv)) as $obj) {
     if (strlen($obj[0])==32) {
-      $filenames_by_id[$obj[0]] = $obj[1];
+      $filenames_by_id[$obj[0]] = $obj[1]!="" ? $obj[1] : $obj[5]; # bestandsnaam kan 2e of 5e kolom zijn afhankelijk of het een oorspronkelijk of een 'merged' lijst is.
     }
   }
 
@@ -31,28 +31,47 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
       $row = [];
       $row["id"] = $data[0];
 
-      if (!array_key_exists($row["id"],$filenames_by_id)) {
-        die("Probleem: ID niet gevonden in de lijst met bestandsnamen");
+      if (!array_key_exists($row["id"],$filenames_by_id) || $filenames_by_id[$row["id"]]=="") {
+        die("Probleem: ID niet gevonden in de lijst met bestandsnamen (of lege bestandsnaam)");
       }
-
-      $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
 
       foreach (json_decode($data[2]) as $item) {
         foreach  ($item[0] as $key => $value) {
           $row[$key] = $value;
-          $fields[$key] = 1; //collect al columns
+          $fields[$key] = $key; //collect al columns
         }
       }
-      
+
       $rows[] = $row;
     }
     fclose($file);
   }
 
+  $fields[] = "bestandsnaam"; //add column
+  $fields[] = "id"; //add column
+
   $spreadsheet = new Spreadsheet();
   $sheet = $spreadsheet->getActiveSheet();
   $sheet->fromArray($fields,NULL,'A1'); //header
-  // $sheet->fromArray($rows,NULL,'A2'); //rows
+
+  header('Content-Type: text/plain');
+
+  $r=2; //start at row 2
+  foreach ($rows as $row) {
+    $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
+
+    # strip .jpg.cropX uit de betandsnaam
+    $row["bestandsnaam"] = preg_replace("/\.jpg\.crop\d{1,2}/", "", $row["bestandsnaam"]);
+
+    $c=1; //start at col 1
+    foreach ($fields as $field) {
+      $value = array_key_exists($field,$row) ? $row[$field] : "";
+      $sheet->getCellByColumnAndRow($c, $r)->setValue($value);
+      $c++;
+    }
+    $r++;
+  }
+
   $writer = new Xlsx($spreadsheet);
   header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   header('Content-Disposition: attachment; filename="result.xlsx"');
@@ -68,6 +87,10 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
   <p>CSV met resultaten van HetVolk: <input type="file" name="result_data_csv" accept=".csv" required></p>
   <input type="submit" value="Start">
   </form>
+  <small>
+    <li>De CSV met bestandsnamen mag de oorspronkelijke CSV zijn maar ook de lijst met 'merged' in de naam.</li>
+    <li>In de uiteindelijke spreadsheet wordt '.jpg.cropX' automatisch verwijderd uit de bestandsnaam.</li>
+  </small>
 <?php
 }
 ?>
