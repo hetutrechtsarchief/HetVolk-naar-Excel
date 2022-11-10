@@ -33,32 +33,43 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
     if (fgets($file, 4) !== "\xef\xbb\xbf") rewind($file); //Skip BOM if present
 
     while (($data = fgetcsv($file, 0, ";", "\"" , "\\")) !== FALSE) {
+      // var_dump($data); //strlen($data[0]);
+      // die();
       if (strlen($data[0])!=32) continue; //id should be of length 32, so skip first item
       
       if (!array_key_exists($data[0],$filenames_by_id) || $filenames_by_id[$data[0]]=="") {
         die("Probleem: ID niet gevonden in de lijst met bestandsnamen (of lege bestandsnaam)");
       }
 
-      // var_dump(json_decode($data[2]));
+      $json = json_decode($data[2]);
+
+      $containsArray = false;
+      foreach ($json as $items) {
+        if (is_array($items)) {
+          !$containsArray = true;
+          break;
+        }
+      }
+
+      if (!$containsArray) {
+        $item = $json;
+        $json = new stdClass;
+        $json->item = [ $item ] ;
+      }
+
+      // var_dump($json);
       // die();
 
-      foreach (json_decode($data[2]) as $items) { //scans
+      foreach ($json as $items) { //scans
 
-        if (is_array($items)) { # last item ('last') is not an array 
-        //   echo "Probleem: '".$items."' is geen array.\n\n";
-        //   var_dump(json_decode($data[2]));
-        //   die();
-        // }
-
-          foreach ($items as $item) { //records per scan
-            $row = [];
-            $row["id"] = $data[0];
-            foreach  ($item as $key => $value) { //columns
-              $row[$key] = $value;
-              $fields[$key] = $key; //collect al column names
-            }
-            $rows[] = $row;
+        foreach ($items as $item) { //records per scan
+          $row = [];
+          $row["id"] = $data[0];
+          foreach  ($item as $key => $value) { //columns
+            $row[$key] = $value;
+            $fields[$key] = $key; //collect al column names
           }
+          $rows[] = $row;
         }
         
       }
