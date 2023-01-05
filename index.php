@@ -64,7 +64,9 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
         foreach ($items as $item) { //records per scan
           $row = [];
-          $row["id"] = $data[0];
+          $row["id"] = $data[0]; 
+          $row["user"] = $data[3]; //RC 2022-01-05
+          $row["tijdstip"] = $data[4]; //RC 2022-01-05
           foreach  ($item as $key => $value) { //columns
             $row[$key] = $value;
             $fields[$key] = $key; //collect al column names
@@ -83,6 +85,8 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
   $fields[] = "bestandsnaam"; //add column
   $fields[] = "id"; //add column
+  $fields[] = "user"; //add column
+  $fields[] = "tijdstip"; //add column
   $fields[] = "link"; //add column
 
   $spreadsheet = new Spreadsheet();
@@ -91,6 +95,7 @@ if (isset($_FILES["input_csv"]) && isset($_FILES["result_data_csv"])) {
 
   $r=2; //start at row 2
   foreach ($rows as $row) {
+
     $row["bestandsnaam"] = $filenames_by_id[$row["id"]];
 
     # strip .jpg.cropX uit de betandsnaam
